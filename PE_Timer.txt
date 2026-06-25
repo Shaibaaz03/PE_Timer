@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speed Timer</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#111;
+    color:white;
+    font-family:Arial, sans-serif;
+}
+
+h1{ margin-bottom:20px; }
+
+.controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+
+input{
+    width:220px;
+    padding:12px;
+    font-size:18px;
+    text-align:center;
+    border:none;
+    border-radius:6px;
+}
+
+button{
+    padding:12px 20px;
+    font-size:18px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    color:white;
+}
+
+#speedBtn{ background:#ff9800; }
+#startBtn{ background:#4caf50; }
+
+#timer{
+    font-size:90px;
+    margin-top:40px;
+    font-weight:bold;
+}
+
+#forwardTimer{
+    margin-top:15px;
+    font-size:18px;
+    opacity:0.7;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Speed Timer</h1>
+
+<div class="controls">
+    <input id="duration" type="text" value="01:00:00">
+
+    <button id="speedBtn" onclick="toggleSpeed()">Speed: 2×</button>
+    <button id="startBtn" onclick="startTimer()">Start</button>
+</div>
+
+<div id="timer">01:00:00</div>
+<div id="forwardTimer">Elapsed: 00:00:00</div>
+
+<script>
+
+let interval;
+let flickerInterval;
+let originalTitle = document.title;
+
+const speeds = [2, 4, 6, 8];
+let speedIndex = 0;
+let speed = speeds[speedIndex];
+
+let startReal;
+let durationSeconds;
+
+function toggleSpeed() {
+    speedIndex = (speedIndex + 1) % speeds.length;
+    speed = speeds[speedIndex];
+
+    document.getElementById("speedBtn").textContent =
+        "Speed: " + speed + "×";
+}
+
+function parseTime(str) {
+    const parts = str.trim().split(":").map(Number);
+    if (parts.some(isNaN)) return null;
+
+    let h=0,m=0,s=0;
+
+    if (parts.length === 3) [h,m,s]=parts;
+    else if (parts.length === 2) [m,s]=parts;
+    else if (parts.length === 1) [s]=parts;
+    else return null;
+
+    return h*3600 + m*60 + s;
+}
+
+function formatTime(t){
+    const h=Math.floor(t/3600);
+    const m=Math.floor((t%3600)/60);
+    const s=t%60;
+
+    return String(h).padStart(2,"0")+":"+
+           String(m).padStart(2,"0")+":"+
+           String(s).padStart(2,"0");
+}
+
+function startFlicker() {
+    let toggle = false;
+
+    flickerInterval = setInterval(() => {
+        document.title = toggle ? "⏰ TIME'S UP!" : "🚨 TIME'S UP!";
+        toggle = !toggle;
+    }, 500);
+}
+
+function stopFlicker() {
+    clearInterval(flickerInterval);
+    document.title = originalTitle;
+}
+
+function render() {
+
+    const now = Date.now();
+    const elapsedReal = (now - startReal) / 1000;
+    const simulated = elapsedReal * speed;
+
+    const remaining = Math.max(0, durationSeconds - simulated);
+    const elapsed = Math.floor(simulated);
+
+    document.getElementById("timer").textContent =
+        formatTime(Math.floor(remaining));
+
+    document.getElementById("forwardTimer").textContent =
+        "Elapsed: " + formatTime(elapsed);
+
+    if (remaining <= 0) {
+        clearInterval(interval);
+        startFlicker();
+        return;
+    }
+}
+
+function startTimer() {
+
+    clearInterval(interval);
+    stopFlicker();
+    document.title = "Speed Timer";
+
+    durationSeconds = parseTime(
+        document.getElementById("duration").value
+    );
+
+    if (!durationSeconds || durationSeconds <= 0) {
+        alert("Enter valid time");
+        return;
+    }
+
+    startReal = Date.now();
+
+    render();
+    interval = setInterval(render, 250);
+}
+
+document.getElementById("duration")
+.addEventListener("keydown", e=>{
+    if(e.key==="Enter") startTimer();
+});
+
+</script>
+
+</body>
+</html>
